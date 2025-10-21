@@ -6,6 +6,7 @@ function TablaDatosDB() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clienteAEditar, setClienteAEditar] = useState(null); // Nuevo estado para el cliente en edición
   const [nuevoCliente, setNuevoCliente] = useState({
     nombre: '',
     apellidos: '',
@@ -21,6 +22,7 @@ function TablaDatosDB() {
   // URL de tu API PHP en Laragon
   const API_URL = 'http://api-react-db.test/get_data.php';
   const API_URL_ADD = 'http://api-react-db.test/add_data.php';
+  const API_URL_EDIT = 'http://api-react-db.test/edit_data.php';
 
   // Función asíncrona para obtener los datos
   const fetchData = async () => {
@@ -52,10 +54,29 @@ function TablaDatosDB() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNuevoCliente(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
+    if (clienteAEditar) {
+      setClienteAEditar(prevState => ({
+        ...prevState,
+        [name]: value
+      }));
+    } else {
+      setNuevoCliente(prevState => ({
+        ...prevState,
+        [name]: value
+      }));
+    }
+  };
+
+  // Abre el modal para añadir un nuevo cliente
+  const handleAddClick = () => {
+    setClienteAEditar(null);
+    setIsModalOpen(true);
+  };
+
+  // Abre el modal para editar un cliente existente
+  const handleEditClick = (cliente) => {
+    setClienteAEditar({ ...cliente, fecha_nacimiento: cliente.fecha_nacimiento ? cliente.fecha_nacimiento.split(' ')[0] : '' });
+    setIsModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
@@ -96,6 +117,36 @@ function TablaDatosDB() {
     }
   };
 
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!clienteAEditar) return;
+
+    try {
+      const response = await fetch(API_URL_EDIT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(clienteAEditar),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(result.mensaje || "Operación completada.");
+        setIsModalOpen(false);
+        setClienteAEditar(null);
+        fetchData(); // Recarga los datos
+      } else {
+        throw new Error(result.error || 'Error desconocido al actualizar el cliente.');
+      }
+    } catch (error) {
+      console.error('Error al actualizar datos:', error);
+      // Mantenemos el modal abierto para que el usuario pueda corregir
+      alert(`Error al actualizar: ${error.message}`);
+    }
+  };
+
   // 1. Estados de la Interfaz
 
   if (loading) {
@@ -122,7 +173,7 @@ function TablaDatosDB() {
     <div className="tabla-datos-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Listado de Clientes</h1>
-        <button onClick={() => setIsModalOpen(true)} style={{ padding: '10px 15px', fontSize: '16px', cursor: 'pointer' }}>
+        <button onClick={handleAddClick} style={{ padding: '10px 15px', fontSize: '16px', cursor: 'pointer' }}>
           Añadir Cliente
         </button>
       </div>
@@ -131,22 +182,22 @@ function TablaDatosDB() {
         <div style={modalStyles.overlay}>
           <div style={modalStyles.modal}>
             <div style={modalStyles.header}>
-              <h2>Añadir Nuevo Cliente</h2>
+              <h2>{clienteAEditar ? 'Editar Cliente' : 'Añadir Nuevo Cliente'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={modalStyles.closeButton}>&times;</button>
             </div>
-            <form onSubmit={handleSubmit} style={modalStyles.form}>
-              <input name="nombre" value={nuevoCliente.nombre} onChange={handleInputChange} placeholder="Nombre" required />
-              <input name="apellidos" value={nuevoCliente.apellidos} onChange={handleInputChange} placeholder="Apellidos" required />
-              <input name="fecha_nacimiento" value={nuevoCliente.fecha_nacimiento} onChange={handleInputChange} placeholder="Fecha de Nacimiento" type="date" />
-              <input name="ci" value={nuevoCliente.ci} onChange={handleInputChange} placeholder="CI" type="number" required />
-              <input name="nit" value={nuevoCliente.nit} onChange={handleInputChange} placeholder="NIT" type="number" />
-              <input name="direccion" value={nuevoCliente.direccion} onChange={handleInputChange} placeholder="Dirección" />
-              <input name="telefono" value={nuevoCliente.telefono} onChange={handleInputChange} placeholder="Teléfono" type="number" />
-              <input name="email" value={nuevoCliente.email} onChange={handleInputChange} placeholder="Email" type="email" />
+            <form onSubmit={clienteAEditar ? handleEditSubmit : handleSubmit} style={modalStyles.form}>
+              <input name="nombre" value={clienteAEditar ? clienteAEditar.nombre : nuevoCliente.nombre} onChange={handleInputChange} placeholder="Nombre" required />
+              <input name="apellidos" value={clienteAEditar ? clienteAEditar.apellidos : nuevoCliente.apellidos} onChange={handleInputChange} placeholder="Apellidos" required />
+              <input name="fecha_nacimiento" value={clienteAEditar ? clienteAEditar.fecha_nacimiento : nuevoCliente.fecha_nacimiento} onChange={handleInputChange} placeholder="Fecha de Nacimiento" type="date" />
+              <input name="ci" value={clienteAEditar ? clienteAEditar.ci : nuevoCliente.ci} onChange={handleInputChange} placeholder="CI" type="number" required />
+              <input name="nit" value={clienteAEditar ? clienteAEditar.nit : nuevoCliente.nit} onChange={handleInputChange} placeholder="NIT" type="number" />
+              <input name="direccion" value={clienteAEditar ? clienteAEditar.direccion : nuevoCliente.direccion} onChange={handleInputChange} placeholder="Dirección" />
+              <input name="telefono" value={clienteAEditar ? clienteAEditar.telefono : nuevoCliente.telefono} onChange={handleInputChange} placeholder="Teléfono" type="number" />
+              <input name="email" value={clienteAEditar ? clienteAEditar.email : nuevoCliente.email} onChange={handleInputChange} placeholder="Email" type="email" />
               {/* El campo estado no se muestra porque ya tiene un valor por defecto */}
               <div style={modalStyles.footer}>
                 <button type="button" onClick={() => setIsModalOpen(false)} style={modalStyles.cancelButton}>Cancelar</button>
-                <button type="submit" style={modalStyles.submitButton}>Guardar Cliente</button>
+                <button type="submit" style={modalStyles.submitButton}>{clienteAEditar ? 'Guardar Cambios' : 'Guardar Cliente'}</button>
               </div>
             </form>
           </div>
@@ -159,14 +210,23 @@ function TablaDatosDB() {
             {filteredColumns.map((columnName) => (
               <th key={columnName}>{columnName.toUpperCase()}</th>
             ))}
+            <th>ACCIONES</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, index) => (
-            <tr key={index}>
+            <tr key={row.cod_cliente || index}>
               {filteredColumns.map((columnName) => (
                 <td key={columnName}>{row[columnName]}</td>
               ))}
+              <td>
+                <button onClick={() => handleEditClick(row)} style={{ marginRight: '5px' }}>
+                  Editar
+                </button>
+                <button onClick={() => { /* Sin funcionalidad por ahora */ }}>
+                  Eliminar
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
