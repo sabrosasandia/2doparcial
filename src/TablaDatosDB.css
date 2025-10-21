@@ -1,0 +1,22 @@
+/* TablaDatosDB.css */
+.tabla-datos-container {
+    margin: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.datos-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.datos-table th, .datos-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.datos-table th {
+    background-color: #f2f2f2;
+}
